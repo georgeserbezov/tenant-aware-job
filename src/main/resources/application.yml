@@ -1,0 +1,39 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: tenant-job-scheduler
+  mvc:
+    async:
+      # SSE connections are long-lived. Spring's default async timeout would cut
+      # idle streams; we manage emitter lifetime explicitly instead (heartbeat +
+      # onTimeout cleanup), so the container-level timeout is disabled.
+      request-timeout: -1
+
+scheduler:
+  concurrency:
+    # Defaults are tuned so contention is visible in a short demo rather than
+    # tuned for throughput. per-target = 1 makes the target cap the easiest one
+    # to trigger on screen.
+    global-max: 8
+    per-tenant-max: 3
+    per-target-max: 1
+  retry:
+    max-attempts: 3
+    backoff-base-millis: 250
+  downstream:
+    min-latency-millis: 400
+    max-latency-millis: 1200
+    failure-rate: 0.25
+    # Fixed seed keeps demos and tests reproducible; override with 0 for random.
+    seed: 42
+  dispatcher:
+    drain-batch-size: 64
+    park-timeout-millis: 50
+  sse:
+    heartbeat-interval-millis: 15000
+
+logging:
+  level:
+    com.quickbase.scheduler: INFO

@@ -1,0 +1,10 @@
+target/
+!.mvn/wrapper/maven-wrapper.jar
+node_modules/
+ui/dist/
+# The React build is copied here by run.sh; it is generated output, not source.
+src/main/resources/static/
+.DS_Store
+.idea/
+*.iml
+*.log
