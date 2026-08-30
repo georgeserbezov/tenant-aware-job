@@ -7,7 +7,8 @@ public record SchedulerProperties(
         Concurrency concurrency,
         Retry retry,
         Downstream downstream,
-        Dispatcher dispatcher) {
+        Dispatcher dispatcher,
+        Sse sse) {
 
     public record Concurrency(int globalMax, int perTenantMax, int perTargetMax) {}
 
@@ -17,4 +18,6 @@ public record SchedulerProperties(
             long minLatencyMillis, long maxLatencyMillis, double failureRate, long seed) {}
 
     public record Dispatcher(int drainBatchSize, long parkTimeoutMillis) {}
+
+    public record Sse(long heartbeatIntervalMillis) {}
 }

@@ -6,18 +6,25 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JobStore {
+
+    private static final Logger log = LoggerFactory.getLogger(JobStore.class);
 
     private static final Comparator<Job> BY_ARRIVAL =
             Comparator.comparing(Job::createdAt).thenComparing(Job::id);
 
     private final ConcurrentHashMap<String, Job> jobs = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> idempotencyIndex = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<Consumer<Job>> listeners = new CopyOnWriteArrayList<>();
 
     public record Insert(Job job, boolean created) {}
 
@@ -37,7 +44,11 @@ public class JobStore {
             return job.id();
         });
 
-        return new Insert(jobs.get(id), created.get());
+        Job job = jobs.get(id);
+        if (created.get()) {
+            publish(job);
+        }
+        return new Insert(job, created.get());
     }
 
     public Optional<Update> update(String id, UnaryOperator<Job> transition) {
@@ -52,9 +63,29 @@ public class JobStore {
             return next;
         });
 
-        return updated == null
-                ? Optional.empty()
-                : Optional.of(new Update(updated, visible.get()));
+        if (updated == null) {
+            return Optional.empty();
+        }
+        if (visible.get()) {
+            publish(updated);
+        }
+        return Optional.of(new Update(updated, visible.get()));
+    }
+
+    public void addListener(Consumer<Job> listener) {
+        listeners.add(listener);
+    }
+
+    // Runs on the caller's thread, so listeners must hand off rather than block:
+    // a slow one would stall a worker or the dispatcher.
+    private void publish(Job job) {
+        for (Consumer<Job> listener : listeners) {
+            try {
+                listener.accept(job);
+            } catch (RuntimeException e) {
+                log.warn("job listener failed for {}", job.id(), e);
+            }
+        }
     }
 
     public Optional<Job> find(String id) {
