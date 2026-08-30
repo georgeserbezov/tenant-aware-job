@@ -26,8 +26,7 @@ scheduler:
     min-latency-millis: 400
     max-latency-millis: 1200
     failure-rate: 0.25
-    # Fixed seed keeps demos and tests reproducible; override with 0 for random.
-    seed: 42
+    seed: 37
   dispatcher:
     drain-batch-size: 64
     park-timeout-millis: 50
