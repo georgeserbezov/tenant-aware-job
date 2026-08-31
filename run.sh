@@ -79,4 +79,11 @@ fi
 # 3. Run the server
 # ---------------------------------------------------------------------------
 info "Starting on http://localhost:8080"
+
+# Any arguments are forwarded as Spring properties, so a demo can override
+# behaviour without editing config:
+#   ./run.sh --scheduler.downstream.failure-rate=1.0
+if [[ $# -gt 0 ]]; then
+  exec "$MVN" -q spring-boot:run -Dspring-boot.run.arguments="$*"
+fi
 exec "$MVN" -q spring-boot:run
