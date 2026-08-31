@@ -25,7 +25,7 @@ public class JobQueue {
         signal();
     }
 
-    /** Wakes the dispatcher without adding work — used when a worker frees a slot. */
+    /** Wakes the dispatcher without adding work, used when a worker frees a slot. */
     public void signal() {
         lock.lock();
         try {

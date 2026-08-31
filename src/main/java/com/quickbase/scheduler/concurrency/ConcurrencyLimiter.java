@@ -15,7 +15,7 @@ public class ConcurrencyLimiter {
     private final int perTargetMax;
 
     // Never pruned. Eviction is unsafe while permits are outstanding, so this is
-    // an accepted leak rather than a missed one — see the README tradeoffs.
+    // an accepted leak rather than a missed one.
     private final ConcurrentHashMap<String, Semaphore> tenantSemaphores = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Semaphore> targetSemaphores = new ConcurrentHashMap<>();
 
@@ -43,7 +43,7 @@ public class ConcurrencyLimiter {
 
     /**
      * All three permits or none. Every acquisition is non-blocking, so no thread
-     * ever holds one permit while waiting for another — that removes hold-and-wait
+     * ever holds one permit while waiting for another, which removes hold-and-wait
      * and makes deadlock structurally impossible rather than merely unlikely.
      */
     public Acquisition tryAcquire(Job job) {
