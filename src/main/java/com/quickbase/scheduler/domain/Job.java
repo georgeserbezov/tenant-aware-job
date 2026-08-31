@@ -80,6 +80,10 @@ public record Job(
                 nextEligibleAt, error, createdAt, now);
     }
 
+    public String shortId() {
+        return id.substring(0, 8);
+    }
+
     public boolean hasAttemptsLeft() {
         return attempt < maxAttempts;
     }

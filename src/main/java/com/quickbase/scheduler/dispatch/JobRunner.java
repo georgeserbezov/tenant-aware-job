@@ -53,6 +53,7 @@ public class JobRunner {
 
     private void run(Job job, ConcurrencySlot slot) {
         String error = null;
+        long startedAt = System.nanoTime();
         try (slot) {
             downstream.execute(job);
         } catch (InterruptedException e) {
@@ -60,6 +61,11 @@ public class JobRunner {
             error = "interrupted during shutdown";
         } catch (RuntimeException e) {
             error = e.getMessage();
+        }
+
+        if (log.isDebugEnabled()) {
+            log.debug("job {} attempt {} took {}ms, outcome {}", job.shortId(), job.attempt(),
+                    (System.nanoTime() - startedAt) / 1_000_000, error == null ? "ok" : error);
         }
 
         // The slot is already closed by this point - try-with-resources releases

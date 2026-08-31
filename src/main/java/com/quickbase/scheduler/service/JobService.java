@@ -7,10 +7,14 @@ import com.quickbase.scheduler.store.JobStore;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class JobService {
+
+    private static final Logger log = LoggerFactory.getLogger(JobService.class);
 
     private final JobStore store;
     private final JobQueue queue;
@@ -30,6 +34,9 @@ public class JobService {
         // copy of the same id in the queue.
         if (insert.created()) {
             queue.enqueue(insert.job().id());
+        } else {
+            log.info("idempotent replay of key {} for {}, returning job {}",
+                    idempotencyKey, tenantId, insert.job().shortId());
         }
         return insert;
     }

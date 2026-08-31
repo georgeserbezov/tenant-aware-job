@@ -113,6 +113,14 @@ public class JobDispatcher {
         }
 
         requeue.forEach(queue::enqueue);
+        // A pass that dispatched nothing did no work.
+        if (dispatched > 0) {
+            log.debug("dispatch pass: drained {}, dispatched {}, requeued {}",
+                    batch.size(), dispatched, requeue.size());
+        } else if (log.isTraceEnabled()) {
+            log.trace("dispatch pass: drained {}, dispatched 0, requeued {}",
+                    batch.size(), requeue.size());
+        }
         return dispatched;
     }
 

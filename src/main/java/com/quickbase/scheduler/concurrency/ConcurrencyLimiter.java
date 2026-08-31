@@ -5,12 +5,17 @@ import com.quickbase.scheduler.domain.BlockReason;
 import com.quickbase.scheduler.domain.Job;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 @Component
 public class ConcurrencyLimiter {
 
+    private static final Logger log = LoggerFactory.getLogger(ConcurrencyLimiter.class);
+
     private final Semaphore global;
+    private final int globalMax;
     private final int perTenantMax;
     private final int perTargetMax;
 
@@ -22,6 +27,7 @@ public class ConcurrencyLimiter {
     public ConcurrencyLimiter(SchedulerProperties properties) {
         SchedulerProperties.Concurrency limits = properties.concurrency();
         this.global = new Semaphore(limits.globalMax());
+        this.globalMax = limits.globalMax();
         this.perTenantMax = limits.perTenantMax();
         this.perTargetMax = limits.perTargetMax();
     }
@@ -48,6 +54,7 @@ public class ConcurrencyLimiter {
      */
     public Acquisition tryAcquire(Job job) {
         if (!global.tryAcquire()) {
+            traceBlocked(job, BlockReason.GLOBAL_LIMIT);
             return Acquisition.blocked(BlockReason.GLOBAL_LIMIT);
         }
 
@@ -55,6 +62,7 @@ public class ConcurrencyLimiter {
                 job.tenantId(), id -> new Semaphore(perTenantMax));
         if (!tenant.tryAcquire()) {
             global.release();
+            traceBlocked(job, BlockReason.TENANT_LIMIT);
             return Acquisition.blocked(BlockReason.TENANT_LIMIT);
         }
 
@@ -63,10 +71,28 @@ public class ConcurrencyLimiter {
         if (!target.tryAcquire()) {
             tenant.release();
             global.release();
+            traceBlocked(job, BlockReason.TARGET_LIMIT);
             return Acquisition.blocked(BlockReason.TARGET_LIMIT);
         }
 
+        if (log.isDebugEnabled()) {
+            log.debug("job {} took all three permits, now at {}", job.shortId(), usage(job));
+        }
         return Acquisition.granted(new ConcurrencySlot(global, tenant, target));
+    }
+
+    // Fires on every pass for every blocked job, so TRACE not DEBUG.
+    private void traceBlocked(Job job, BlockReason reason) {
+        if (log.isTraceEnabled()) {
+            log.trace("job {} blocked by {}, at {}", job.shortId(), reason, usage(job));
+        }
+    }
+
+    private String usage(Job job) {
+        return String.format("global %d/%d, tenant %d/%d, target %d/%d",
+                globalMax - availableGlobal(), globalMax,
+                perTenantMax - availableForTenant(job.tenantId()), perTenantMax,
+                perTargetMax - availableForTarget(job.targetId()), perTargetMax);
     }
 
     public int availableGlobal() {
