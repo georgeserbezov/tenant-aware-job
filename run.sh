@@ -28,9 +28,20 @@ resolve_java_home() {
       "$(brew --prefix openjdk@21 2>/dev/null || true)/libexec/openjdk.jdk/Contents/Home" \
       "$(brew --prefix openjdk 2>/dev/null || true)/libexec/openjdk.jdk/Contents/Home" \
       "/usr/lib/jvm/java-21-openjdk-amd64"; do
-    [[ -n "$candidate" && -x "$candidate/bin/javac" ]] || continue
+    [[ -n "$candidate" ]] || continue
+
+    # .exe as well, so this still works under Git Bash on Windows.
+    local java_exe
+    if [[ -x "$candidate/bin/javac" ]]; then
+      java_exe="$candidate/bin/java"
+    elif [[ -x "$candidate/bin/javac.exe" ]]; then
+      java_exe="$candidate/bin/java.exe"
+    else
+      continue
+    fi
+
     local major
-    major="$("$candidate/bin/java" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)"
+    major="$("$java_exe" -version 2>&1 | sed -n 's/.*version "\([0-9]*\).*/\1/p' | head -1)"
     if [[ -n "$major" && "$major" -ge 21 ]]; then
       echo "$candidate"
       return 0
@@ -48,7 +59,7 @@ if ! JAVA_HOME="$(resolve_java_home)"; then
 fi
 export JAVA_HOME
 export PATH="$JAVA_HOME/bin:$PATH"
-info "Using JDK at $JAVA_HOME ($("$JAVA_HOME"/bin/java -version 2>&1 | head -1))"
+info "Using JDK at $JAVA_HOME ($("$JAVA_HOME"/bin/java -version 2>&1 | head -1 || true))"
 
 # Prefer the checked-in Maven wrapper so a reviewer needs no local Maven.
 MVN="./mvnw"

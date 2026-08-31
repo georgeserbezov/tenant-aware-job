@@ -12,7 +12,8 @@ design.
 ## Run it
 
 ```bash
-./run.sh
+./run.sh          # macOS, Linux, or Git Bash / WSL on Windows
+run.cmd           # Windows, from cmd or PowerShell
 ```
 
 Then open <http://localhost:8080>.
@@ -27,8 +28,13 @@ because on macOS `/usr/bin/java` is a stub that exists even with no JDK installe
 and Homebrew's JDKs are keg-only, so `PATH` gives both false positives and false
 negatives. If it cannot find one it tells you how to install it and exits.
 
+`run.cmd` is the same three steps for Windows, and a `.gitattributes` keeps the
+shell scripts LF so they still run under Git Bash after a Windows checkout.
+
 Verified end to end from a fresh `git clone` of this repo: `./run.sh` built the
-UI, started the server, served the page, and enforced the caps.
+UI, started the server, served the page, and enforced the caps. That verification
+was on macOS. `run.cmd` mirrors the same three steps for Windows and follows the
+same contract, but it has not been run on a Windows machine.
 
 ### See the caps bite
 
